@@ -65,6 +65,18 @@ public static class Iso6346
 
         var normalised = Normalise(prefix);
 
+        for (var i = 0; i < 4; i++)
+        {
+            if (!char.IsAsciiLetterUpper(normalised[i]))
+                return null;
+        }
+
+        for (var i = 4; i < 10; i++)
+        {
+            if (!char.IsAsciiDigit(normalised[i]))
+                return null;
+        }
+
         long sum = 0;
         for (var i = 0; i < 10; i++)
         {
