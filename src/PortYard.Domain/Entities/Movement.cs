@@ -12,8 +12,19 @@ public class Movement
     public int ContainerId { get; private set; }
     public Container Container { get; private set; } = null!;
     public MovementType Type { get; private set; }
-    public int? FromSlotId { get; private set; }
-    public int? ToSlotId { get; private set; }
+
+    /// <summary>
+    /// Derived from <see cref="FromSlot"/> rather than stored directly. Recording the slot id
+    /// eagerly at call time is wrong during bulk seeding: entities are linked in memory before
+    /// EF assigns real primary keys, so an eagerly-read id would still be 0. Reading it off the
+    /// navigation instead stays correct whether or not the slot has been persisted yet.
+    /// </summary>
+    public int? FromSlotId => FromSlot?.Id;
+    public YardSlot? FromSlot { get; private set; }
+
+    public int? ToSlotId => ToSlot?.Id;
+    public YardSlot? ToSlot { get; private set; }
+
     public DateTimeOffset OccurredAt { get; private set; }
     public string Operator { get; private set; } = string.Empty;
 
@@ -22,12 +33,12 @@ public class Movement
     }
 
     /// <summary>Only <see cref="Container"/> creates movements — it owns chronology and transition validation.</summary>
-    internal Movement(Container container, MovementType type, int? fromSlotId, int? toSlotId, DateTimeOffset occurredAt, string operatorName)
+    internal Movement(Container container, MovementType type, YardSlot? fromSlot, YardSlot? toSlot, DateTimeOffset occurredAt, string operatorName)
     {
         Container = container;
         Type = type;
-        FromSlotId = fromSlotId;
-        ToSlotId = toSlotId;
+        FromSlot = fromSlot;
+        ToSlot = toSlot;
         OccurredAt = occurredAt;
         Operator = operatorName;
     }

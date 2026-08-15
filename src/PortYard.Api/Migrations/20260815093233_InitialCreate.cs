@@ -107,8 +107,8 @@ namespace PortYard.Api.Migrations
                         .Annotation("Sqlite:Autoincrement", true),
                     ContainerId = table.Column<int>(type: "INTEGER", nullable: false),
                     Type = table.Column<string>(type: "TEXT", maxLength: 20, nullable: false),
-                    FromSlotId = table.Column<int>(type: "INTEGER", nullable: true),
-                    ToSlotId = table.Column<int>(type: "INTEGER", nullable: true),
+                    FromSlotRefId = table.Column<int>(type: "INTEGER", nullable: true),
+                    ToSlotRefId = table.Column<int>(type: "INTEGER", nullable: true),
                     OccurredAt = table.Column<DateTimeOffset>(type: "TEXT", nullable: false),
                     Operator = table.Column<string>(type: "TEXT", maxLength: 100, nullable: false)
                 },
@@ -119,6 +119,18 @@ namespace PortYard.Api.Migrations
                         name: "FK_Movements_Containers_ContainerId",
                         column: x => x.ContainerId,
                         principalTable: "Containers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_Movements_YardSlots_FromSlotRefId",
+                        column: x => x.FromSlotRefId,
+                        principalTable: "YardSlots",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_Movements_YardSlots_ToSlotRefId",
+                        column: x => x.ToSlotRefId,
+                        principalTable: "YardSlots",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                 });
@@ -148,6 +160,16 @@ namespace PortYard.Api.Migrations
                 name: "IX_Movements_ContainerId",
                 table: "Movements",
                 column: "ContainerId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Movements_FromSlotRefId",
+                table: "Movements",
+                column: "FromSlotRefId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Movements_ToSlotRefId",
+                table: "Movements",
+                column: "ToSlotRefId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Vessels_Imo",

@@ -111,7 +111,7 @@ namespace PortYard.Api.Migrations
                     b.Property<int>("ContainerId")
                         .HasColumnType("INTEGER");
 
-                    b.Property<int?>("FromSlotId")
+                    b.Property<int?>("FromSlotRefId")
                         .HasColumnType("INTEGER");
 
                     b.Property<DateTimeOffset>("OccurredAt")
@@ -122,7 +122,7 @@ namespace PortYard.Api.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("TEXT");
 
-                    b.Property<int?>("ToSlotId")
+                    b.Property<int?>("ToSlotRefId")
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("Type")
@@ -133,6 +133,10 @@ namespace PortYard.Api.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("ContainerId");
+
+                    b.HasIndex("FromSlotRefId");
+
+                    b.HasIndex("ToSlotRefId");
 
                     b.ToTable("Movements");
                 });
@@ -231,7 +235,21 @@ namespace PortYard.Api.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("PortYard.Domain.Entities.YardSlot", "FromSlot")
+                        .WithMany()
+                        .HasForeignKey("FromSlotRefId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("PortYard.Domain.Entities.YardSlot", "ToSlot")
+                        .WithMany()
+                        .HasForeignKey("ToSlotRefId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("Container");
+
+                    b.Navigation("FromSlot");
+
+                    b.Navigation("ToSlot");
                 });
 
             modelBuilder.Entity("PortYard.Domain.Entities.Container", b =>

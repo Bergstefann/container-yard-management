@@ -83,7 +83,7 @@ public class Container
 
         Status = ContainerStatus.GatedIn;
         ArrivedAt = occurredAt;
-        RecordMovement(MovementType.GateIn, null, null, occurredAt, operatorName);
+        RecordMovement(MovementType.GateIn, fromSlot: null, toSlot: null, occurredAt, operatorName);
     }
 
     /// <summary>
@@ -105,7 +105,7 @@ public class Container
         if (occupiedTeu + Teu > slot.MaxTeu)
             throw new DomainRuleException($"Slot {slot.Code} has no capacity for another {Teu} TEU ({occupiedTeu}/{slot.MaxTeu} TEU used).");
 
-        var fromSlotId = CurrentSlotId;
+        var fromSlot = CurrentSlot;
 
         CurrentSlot?.RemoveContainer(this);
         slot.AddContainer(this);
@@ -114,7 +114,7 @@ public class Container
         CurrentSlotId = slot.Id;
         Status = ContainerStatus.Stored;
 
-        RecordMovement(MovementType.Yard, fromSlotId, slot.Id, occurredAt, operatorName);
+        RecordMovement(MovementType.Yard, fromSlot, slot, occurredAt, operatorName);
     }
 
     /// <summary>GatedIn → Staged (direct transhipment, never yarded) or Stored → Staged (normal flow, lifted from its slot).</summary>
@@ -123,14 +123,14 @@ public class Container
         if (Status is not (ContainerStatus.GatedIn or ContainerStatus.Stored))
             throw new DomainRuleException($"Cannot stage a container with status {Status}.");
 
-        var fromSlotId = CurrentSlotId;
+        var fromSlot = CurrentSlot;
 
         CurrentSlot?.RemoveContainer(this);
         CurrentSlot = null;
         CurrentSlotId = null;
         Status = ContainerStatus.Staged;
 
-        RecordMovement(MovementType.Stage, fromSlotId, null, occurredAt, operatorName);
+        RecordMovement(MovementType.Stage, fromSlot, toSlot: null, occurredAt, operatorName);
     }
 
     /// <summary>Staged → GatedOut, the terminal state. Blocked while any customs hold is active.</summary>
@@ -144,7 +144,7 @@ public class Container
 
         Status = ContainerStatus.GatedOut;
         DepartedAt = occurredAt;
-        RecordMovement(MovementType.GateOut, null, null, occurredAt, operatorName);
+        RecordMovement(MovementType.GateOut, fromSlot: null, toSlot: null, occurredAt, operatorName);
     }
 
     public CustomsHold PlaceHold(string reason, DateTimeOffset placedAt)
@@ -157,7 +157,7 @@ public class Container
         return hold;
     }
 
-    private void RecordMovement(MovementType type, int? fromSlotId, int? toSlotId, DateTimeOffset occurredAt, string operatorName)
+    private void RecordMovement(MovementType type, YardSlot? fromSlot, YardSlot? toSlot, DateTimeOffset occurredAt, string operatorName)
     {
         if (string.IsNullOrWhiteSpace(operatorName))
             throw new DomainRuleException("An operator is required to record a movement.");
@@ -166,6 +166,6 @@ public class Container
         if (lastMovementAt is not null && occurredAt < lastMovementAt)
             throw new DomainRuleException("A movement cannot be dated earlier than the container's most recent movement.");
 
-        _movements.Add(new Movement(this, type, fromSlotId, toSlotId, occurredAt, operatorName.Trim()));
+        _movements.Add(new Movement(this, type, fromSlot, toSlot, occurredAt, operatorName.Trim()));
     }
 }
