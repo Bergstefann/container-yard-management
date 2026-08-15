@@ -488,3 +488,6 @@ $RECYCLE.BIN/
 *.db-shm
 *.db-wal
 src/PortYard.Api/*.sqlite
+
+# Local Claude Code config
+.claude/
