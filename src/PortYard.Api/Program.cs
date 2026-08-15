@@ -16,6 +16,7 @@ if (app.Environment.IsDevelopment())
     using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<YardDbContext>();
     db.Database.Migrate();
+    YardSeeder.Seed(db);
 
     app.UseSwagger();
     app.UseSwaggerUI();
