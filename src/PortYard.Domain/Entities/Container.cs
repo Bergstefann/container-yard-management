@@ -107,8 +107,8 @@ public class Container
 
         var fromSlot = CurrentSlot;
 
-        CurrentSlot?.RemoveContainer(this);
-        slot.AddContainer(this);
+        CurrentSlot?.RemoveContainer(this, occurredAt);
+        slot.AddContainer(this, occurredAt);
 
         CurrentSlot = slot;
         CurrentSlotId = slot.Id;
@@ -125,7 +125,7 @@ public class Container
 
         var fromSlot = CurrentSlot;
 
-        CurrentSlot?.RemoveContainer(this);
+        CurrentSlot?.RemoveContainer(this, occurredAt);
         CurrentSlot = null;
         CurrentSlotId = null;
         Status = ContainerStatus.Staged;

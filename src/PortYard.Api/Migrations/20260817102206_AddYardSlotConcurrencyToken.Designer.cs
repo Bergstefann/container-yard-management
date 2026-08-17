@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using PortYard.Api.Data;
 
@@ -10,9 +11,11 @@ using PortYard.Api.Data;
 namespace PortYard.Api.Migrations
 {
     [DbContext(typeof(YardDbContext))]
-    partial class YardDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260817102206_AddYardSlotConcurrencyToken")]
+    partial class AddYardSlotConcurrencyToken
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "9.0.0");
