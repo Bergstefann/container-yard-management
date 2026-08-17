@@ -124,7 +124,7 @@ erDiagram
 dotnet test
 ```
 
-63 tests: 53 unit tests against the domain layer (ISO 6346 validation, status transitions — legal and illegal — slot capacity, and movement chronology) with no database involved, plus 10 integration tests that run the full ASP.NET Core pipeline against a real SQLite database via `WebApplicationFactory`. The integration tests deliberately use a live SQLite connection rather than EF Core's `UseInMemoryDatabase` provider, because that provider doesn't enforce relational constraints — foreign keys and unique indexes — which would silently defeat the point of testing them.
+64 tests: 53 unit tests against the domain layer (ISO 6346 validation, status transitions — legal and illegal — slot capacity, and movement chronology) with no database involved, plus 11 integration tests that run the full ASP.NET Core pipeline against a real SQLite database via `WebApplicationFactory`. The integration tests deliberately use a live SQLite connection rather than EF Core's `UseInMemoryDatabase` provider, because that provider doesn't enforce relational constraints — foreign keys and unique indexes — which would silently defeat the point of testing them. Schema is applied via `Database.Migrate()`, the same call `Program.cs` makes in Development, so a green run here also proves the committed migrations match the current model — not just that `EnsureCreated` can build a database that does.
 
 ## Design decisions and trade-offs
 

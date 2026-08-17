@@ -15,6 +15,11 @@ namespace PortYard.Tests.Integration;
 /// constraints — foreign keys, unique indexes — are actually enforced. EF Core's
 /// UseInMemoryDatabase provider does not enforce those, which would defeat the point of these
 /// tests. Each test class gets its own fresh, freshly seeded database.
+///
+/// Schema is applied via <c>Database.MigrateAsync()</c>, the same call Program.cs makes in
+/// Development, not <c>EnsureCreatedAsync()</c>. EnsureCreated builds straight from the current
+/// model and would pass even if a migration file had drifted from it — a green test run here is
+/// what actually proves the committed migrations are correct, not just that the model is.
 /// </summary>
 public class PortYardApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
 {
@@ -38,7 +43,7 @@ public class PortYardApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
 
         using var scope = Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<YardDbContext>();
-        await db.Database.EnsureCreatedAsync();
+        await db.Database.MigrateAsync();
         YardSeeder.Seed(db);
     }
 
