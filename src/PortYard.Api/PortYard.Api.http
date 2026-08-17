@@ -1,6 +1,77 @@
 @PortYard.Api_HostAddress = http://localhost:5166
 
-GET {{PortYard.Api_HostAddress}}/weatherforecast/
+### List containers (paginated, optionally filtered)
+GET {{PortYard.Api_HostAddress}}/api/containers?page=1&pageSize=20
 Accept: application/json
 
-###
+### List containers in a specific block, status, size, or shipping line
+GET {{PortYard.Api_HostAddress}}/api/containers?status=Stored&block=A
+Accept: application/json
+
+### Register a new container (pre-advised, not yet arrived)
+POST {{PortYard.Api_HostAddress}}/api/containers
+Content-Type: application/json
+
+{
+  "containerNumber": "MSCU1234566",
+  "size": "FortyFoot",
+  "type": "DryVan",
+  "grossWeightKg": 18000,
+  "shippingLine": "MSC"
+}
+
+### Full detail for one container: current slot, active holds, movement history
+GET {{PortYard.Api_HostAddress}}/api/containers/MSCU1234566
+Accept: application/json
+
+### Gate the container in: Expected -> GatedIn
+POST {{PortYard.Api_HostAddress}}/api/containers/MSCU1234566/gate-in
+
+### Assign it to a yard slot: GatedIn/Staged -> Stored (or a re-yard if already Stored)
+POST {{PortYard.Api_HostAddress}}/api/containers/MSCU1234566/assign-slot
+Content-Type: application/json
+
+{
+  "slotCode": "A01-1"
+}
+
+### Place a customs hold — blocks gate-out until released
+POST {{PortYard.Api_HostAddress}}/api/containers/MSCU1234566/holds
+Content-Type: application/json
+
+{
+  "reason": "Random compliance check"
+}
+
+### Release a customs hold by its id (use the id returned above)
+POST {{PortYard.Api_HostAddress}}/api/holds/1/release
+
+### Stage the container for departure: GatedIn/Stored -> Staged
+POST {{PortYard.Api_HostAddress}}/api/containers/MSCU1234566/stage
+
+### Gate it out: Staged -> GatedOut (409 while any hold is still active)
+POST {{PortYard.Api_HostAddress}}/api/containers/MSCU1234566/gate-out
+
+### List every yard slot with current occupancy and remaining TEU
+GET {{PortYard.Api_HostAddress}}/api/slots
+Accept: application/json
+
+### Detail for one slot, including the containers currently in it
+GET {{PortYard.Api_HostAddress}}/api/slots/A01-1
+Accept: application/json
+
+### Report: yard utilisation by block
+GET {{PortYard.Api_HostAddress}}/api/reports/yard-utilisation
+Accept: application/json
+
+### Report: dwell time by shipping line and container type
+GET {{PortYard.Api_HostAddress}}/api/reports/dwell-time
+Accept: application/json
+
+### Report: daily gate throughput (defaults to the last 30 days)
+GET {{PortYard.Api_HostAddress}}/api/reports/throughput
+Accept: application/json
+
+### Report: throughput over an explicit date range
+GET {{PortYard.Api_HostAddress}}/api/reports/throughput?from=2026-01-01&to=2026-01-31
+Accept: application/json
