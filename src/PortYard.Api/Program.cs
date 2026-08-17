@@ -9,7 +9,7 @@ using PortYard.Api.Services;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddDbContext<YardDbContext>(options =>
-    options.UseSqlite(builder.Configuration.GetConnectionString("YardDb")));
+    options.UseSqlServer(builder.Configuration.GetConnectionString("YardDb")));
 
 builder.Services.AddControllers()
     .AddJsonOptions(options => options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
@@ -18,6 +18,27 @@ builder.Services.AddScoped<ContainerService>();
 builder.Services.AddScoped<YardSlotService>();
 builder.Services.AddScoped<CustomsHoldService>();
 builder.Services.AddScoped<ReportService>();
+
+// Pings the database, not just "is the process running" — an App Service instance whose SQL
+// connection has died should fail its probe and get taken out of rotation, not keep serving
+// requests that are all going to 500 anyway.
+builder.Services.AddHealthChecks()
+    .AddDbContextCheck<YardDbContext>();
+
+// No real frontend exists yet, so there's nothing to hardcode an origin for — allowed origins
+// are configuration-driven (Cors:AllowedOrigins) and empty by default, which means CORS stays
+// off until a real caller's origin is actually known. Configure it via an App Service
+// Application Setting (Cors__AllowedOrigins__0=https://...) once a frontend exists.
+const string CorsPolicyName = "Configured";
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy(CorsPolicyName, policy =>
+    {
+        var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
+        if (allowedOrigins.Length > 0)
+            policy.WithOrigins(allowedOrigins).AllowAnyHeader().AllowAnyMethod();
+    });
+});
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
@@ -72,7 +93,10 @@ app.UseSwaggerUI(options => options.SwaggerEndpoint("/swagger/v1/swagger.json", 
 
 app.UseHttpsRedirection();
 
+app.UseCors(CorsPolicyName);
+
 app.MapControllers();
+app.MapHealthChecks("/health");
 
 app.Run();
 
