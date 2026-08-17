@@ -40,11 +40,30 @@ var app = builder.Build();
 
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 
+// Migrations are a deployment concern, not a startup concern, past local
+// development: running them opportunistically at app startup in a scaled-out
+// or multi-instance environment risks two instances racing to migrate the
+// same database, and it means a schema problem surfaces as a confusing 500
+// on someone's first request instead of a clear failure in the deploy
+// pipeline. Development is the one exception, kept for the zero-setup
+// "clone and dotnet run" experience the README promises. Everywhere else,
+// the schema is expected to already be current — applied by
+// `dotnet ef database update` as an explicit deploy step before the app
+// ever starts (see the README's deployment section).
 if (app.Environment.IsDevelopment())
 {
     using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<YardDbContext>();
     db.Database.Migrate();
+    YardSeeder.Seed(db);
+}
+else if (app.Environment.IsStaging())
+{
+    // Schema is already current (deploy step); demo data is still useful
+    // here so a reviewer gets the same "browse a populated yard" experience
+    // as Development, without ever seeding a real production database.
+    using var scope = app.Services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<YardDbContext>();
     YardSeeder.Seed(db);
 }
 
