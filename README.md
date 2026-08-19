@@ -130,7 +130,7 @@ erDiagram
 
 ## Deployment
 
-**Live**: not yet — see the checklist below. The pipeline that will keep it deployed is already in place.
+**Live**: https://portyard-api.azurewebsites.net (`/health`, `/swagger`)
 
 ```mermaid
 flowchart LR
