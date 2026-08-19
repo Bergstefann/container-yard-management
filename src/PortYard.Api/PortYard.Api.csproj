@@ -21,6 +21,7 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>$(NoWarn);CS1591</NoWarn>
+    <UserSecretsId>e9f8dbd9-6f9e-4d70-a34b-d203c060c6a8</UserSecretsId>
   </PropertyGroup>
 
 </Project>
