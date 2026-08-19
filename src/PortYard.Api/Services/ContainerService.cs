@@ -165,7 +165,21 @@ public class ContainerService(YardDbContext db)
         var slot = await FindSlotByCodeAsync(slotCode, ct);
 
         container.AssignToSlot(slot, DateTimeOffset.UtcNow, DefaultOperator);
-        await db.SaveChangesAsync(ct);
+
+        try
+        {
+            await db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            // Someone else's assign-slot committed against this same slot between our read and
+            // our write — our capacity check ran against a snapshot that's no longer current.
+            // Not this request's job to retry blindly; tell the caller so they can re-check and
+            // resubmit against the slot's current state.
+            throw new DomainRuleException(
+                $"Slot {slotCode} was changed by another request while this one was in progress. Retry the assignment.");
+        }
+
         return ToSummary(container);
     }
 

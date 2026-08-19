@@ -15,11 +15,11 @@ namespace PortYard.Api.Migrations
                 name: "Vessels",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "INTEGER", nullable: false)
-                        .Annotation("Sqlite:Autoincrement", true),
-                    Name = table.Column<string>(type: "TEXT", maxLength: 200, nullable: false),
-                    Imo = table.Column<string>(type: "TEXT", maxLength: 7, nullable: false),
-                    Eta = table.Column<DateTimeOffset>(type: "TEXT", nullable: false)
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Name = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
+                    Imo = table.Column<string>(type: "nvarchar(7)", maxLength: 7, nullable: false),
+                    Eta = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -30,13 +30,14 @@ namespace PortYard.Api.Migrations
                 name: "YardSlots",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "INTEGER", nullable: false)
-                        .Annotation("Sqlite:Autoincrement", true),
-                    Block = table.Column<string>(type: "TEXT", maxLength: 10, nullable: false),
-                    Row = table.Column<int>(type: "INTEGER", nullable: false),
-                    Tier = table.Column<int>(type: "INTEGER", nullable: false),
-                    MaxTeu = table.Column<int>(type: "INTEGER", nullable: false),
-                    IsReeferCapable = table.Column<bool>(type: "INTEGER", nullable: false)
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Block = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: false),
+                    Row = table.Column<int>(type: "int", nullable: false),
+                    Tier = table.Column<int>(type: "int", nullable: false),
+                    MaxTeu = table.Column<int>(type: "int", nullable: false),
+                    IsReeferCapable = table.Column<bool>(type: "bit", nullable: false),
+                    LastModifiedAt = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -47,18 +48,18 @@ namespace PortYard.Api.Migrations
                 name: "Containers",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "INTEGER", nullable: false)
-                        .Annotation("Sqlite:Autoincrement", true),
-                    ContainerNumber = table.Column<string>(type: "TEXT", maxLength: 11, nullable: false),
-                    Size = table.Column<string>(type: "TEXT", maxLength: 20, nullable: false),
-                    Type = table.Column<string>(type: "TEXT", maxLength: 20, nullable: false),
-                    Status = table.Column<string>(type: "TEXT", maxLength: 20, nullable: false),
-                    GrossWeightKg = table.Column<int>(type: "INTEGER", nullable: false),
-                    ShippingLine = table.Column<string>(type: "TEXT", maxLength: 100, nullable: false),
-                    CurrentSlotId = table.Column<int>(type: "INTEGER", nullable: true),
-                    InboundVesselId = table.Column<int>(type: "INTEGER", nullable: true),
-                    ArrivedAt = table.Column<DateTimeOffset>(type: "TEXT", nullable: true),
-                    DepartedAt = table.Column<DateTimeOffset>(type: "TEXT", nullable: true)
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    ContainerNumber = table.Column<string>(type: "nvarchar(11)", maxLength: 11, nullable: false),
+                    Size = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
+                    Type = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
+                    Status = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
+                    GrossWeightKg = table.Column<int>(type: "int", nullable: false),
+                    ShippingLine = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    CurrentSlotId = table.Column<int>(type: "int", nullable: true),
+                    InboundVesselId = table.Column<int>(type: "int", nullable: true),
+                    ArrivedAt = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: true),
+                    DepartedAt = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -81,12 +82,12 @@ namespace PortYard.Api.Migrations
                 name: "CustomsHolds",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "INTEGER", nullable: false)
-                        .Annotation("Sqlite:Autoincrement", true),
-                    ContainerId = table.Column<int>(type: "INTEGER", nullable: false),
-                    Reason = table.Column<string>(type: "TEXT", maxLength: 500, nullable: false),
-                    PlacedAt = table.Column<DateTimeOffset>(type: "TEXT", nullable: false),
-                    ReleasedAt = table.Column<DateTimeOffset>(type: "TEXT", nullable: true)
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    ContainerId = table.Column<int>(type: "int", nullable: false),
+                    Reason = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
+                    PlacedAt = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: false),
+                    ReleasedAt = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -103,14 +104,14 @@ namespace PortYard.Api.Migrations
                 name: "Movements",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "INTEGER", nullable: false)
-                        .Annotation("Sqlite:Autoincrement", true),
-                    ContainerId = table.Column<int>(type: "INTEGER", nullable: false),
-                    Type = table.Column<string>(type: "TEXT", maxLength: 20, nullable: false),
-                    FromSlotRefId = table.Column<int>(type: "INTEGER", nullable: true),
-                    ToSlotRefId = table.Column<int>(type: "INTEGER", nullable: true),
-                    OccurredAt = table.Column<DateTimeOffset>(type: "TEXT", nullable: false),
-                    Operator = table.Column<string>(type: "TEXT", maxLength: 100, nullable: false)
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    ContainerId = table.Column<int>(type: "int", nullable: false),
+                    Type = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
+                    FromSlotRefId = table.Column<int>(type: "int", nullable: true),
+                    ToSlotRefId = table.Column<int>(type: "int", nullable: true),
+                    OccurredAt = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: false),
+                    Operator = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false)
                 },
                 constraints: table =>
                 {

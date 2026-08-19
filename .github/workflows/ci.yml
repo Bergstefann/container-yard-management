@@ -6,8 +6,76 @@ on:
   pull_request:
     branches: [main]
 
+env:
+  # Microsoft's own documented local/CI-only placeholder password for this exact image — never
+  # a real credential, and irrelevant outside this job's throwaway container.
+  MSSQL_SA_PASSWORD: "YourStrong!Passw0rd"
+
 jobs:
   build-and-test:
+    runs-on: ubuntu-latest
+
+    services:
+      sqlserver:
+        image: mcr.microsoft.com/mssql/server:2022-latest
+        env:
+          ACCEPT_EULA: "Y"
+          MSSQL_SA_PASSWORD: ${{ env.MSSQL_SA_PASSWORD }}
+        ports:
+          - 1433:1433
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Restore
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build --configuration Release --no-restore
+
+      # The services container's port is open quickly, but SQL Server itself can take longer to
+      # finish initializing inside it — this waits on the port rather than any image-internal
+      # tool path, so it doesn't depend on knowing what's installed inside that image.
+      - name: Wait for SQL Server to accept connections
+        run: |
+          for i in $(seq 1 30); do
+            (exec 3<>/dev/tcp/localhost/1433) 2>/dev/null && exec 3>&- && break
+            echo "waiting for SQL Server... ($i/30)"
+            sleep 2
+          done
+
+      - name: Test
+        run: dotnet test --configuration Release --no-build --verbosity normal --logger "trx;LogFileName=test-results.trx"
+        env:
+          PORTYARD_TEST_CONNECTION_STRING: "Server=localhost,1433;User Id=sa;Password=${{ env.MSSQL_SA_PASSWORD }};TrustServerCertificate=True"
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: "**/TestResults/test-results.trx"
+
+  # Builds a deployable publish output and pushes it to Azure App Service. Only runs on main
+  # (never on PRs, so a fork/PR can't trigger a deploy), and only after build-and-test passes.
+  #
+  # Needs, once the App Service + Azure SQL resources exist (see the README's deployment
+  # section for the one-time setup this doesn't do for you):
+  #   - Repository secret AZURE_WEBAPP_PUBLISH_PROFILE — the App Service's publish profile
+  #     (Azure Portal: App Service -> Get publish profile, or `az webapp deployment
+  #     list-publishing-profiles`). Rotate it in the portal if it's ever exposed.
+  #   - Repository variable AZURE_WEBAPP_NAME — the App Service's name.
+  # Until both exist this job will fail at the deploy step — everything before that (publish)
+  # will still succeed and can be reviewed on its own.
+  deploy:
+    needs: build-and-test
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
 
     steps:
@@ -17,20 +85,14 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: 9.0.x
+          dotnet-version: 10.0.x
 
-      - name: Restore
-        run: dotnet restore
+      - name: Publish
+        run: dotnet publish src/PortYard.Api/PortYard.Api.csproj --configuration Release --output ./publish
 
-      - name: Build
-        run: dotnet build --configuration Release --no-restore
-
-      - name: Test
-        run: dotnet test --configuration Release --no-build --verbosity normal --logger "trx;LogFileName=test-results.trx"
-
-      - name: Upload test results
-        uses: actions/upload-artifact@v4
-        if: always()
+      - name: Deploy to Azure App Service
+        uses: azure/webapps-deploy@v3
         with:
-          name: test-results
-          path: "**/TestResults/test-results.trx"
+          app-name: ${{ vars.AZURE_WEBAPP_NAME }}
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+          package: ./publish
