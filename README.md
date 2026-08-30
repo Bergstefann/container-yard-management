@@ -60,6 +60,24 @@ The invariants the domain layer enforces, and the test suite proves:
 - **Movements are append-only and chronologically consistent.** A new movement can never predate the container's most recent one, and nothing mutates a movement once recorded.
 - **Container numbers are unique and ISO 6346-valid**, enforced at the API boundary and by a unique database index.
 
+The legal transitions as a state machine:
+
+```mermaid
+stateDiagram-v2
+    [*] --> Expected
+    Expected --> GatedIn : gate-in
+    GatedIn --> Stored : assign-slot
+    Stored --> Staged : stage
+    Staged --> GatedOut : gate-out
+    GatedIn --> Staged : direct transhipment
+    Staged --> Stored : re-yard
+    GatedOut --> [*]
+```
+
+![Container lifecycle: legal transitions only — Expected through GatedIn, Stored, Staged, and terminal GatedOut, with two extra legal edges for direct transhipment and re-yard](docs/images/container-lifecycle-state-machine.png)
+
+`GatedOut` is terminal; any other transition throws.
+
 ## API endpoints
 
 | Method | Route | Description |
@@ -172,7 +190,9 @@ The integration suite needs a reachable SQL Server. The local Docker container f
 
 **SQL Server, not SQLite.** This ran on SQLite through most of development, which meant a reviewer could clone and run it with zero setup. It moved to SQL Server once the point became being deployed rather than just being clonable. A demo that only proves it runs on SQLite doesn't demonstrate it runs on the database it's actually deployed against. Nothing in the domain layer changed for the swap, which was the bet the SQLite choice made. The cost is that "zero setup" became "one `docker run`."
 
-**Migrations run at startup only in Development.** This used to be gated on `!IsDevelopment()`, which meant any non-Development environment started with no schema and 500'd on the first request. Auto-migrating on boot is also the wrong place for it once there's more than one instance: two instances racing to migrate the same database is a real failure mode. Migrations belong to the deploy pipeline. Development keeps auto-migrate-and-seed for a zero-setup `dotnet run`, Staging seeds demo data onto an already-migrated schema, and Production does neither at runtime.
+**Migrations run at startup only in Development.** The startup path was originally the
+only place schema got created, so a non-Development environment that never reached a
+successful startup run started with no schema and 500'd on the first request. Auto-migrating on boot is also the wrong place for it once there's more than one instance: two instances racing to migrate the same database is a real failure mode. Migrations belong to the deploy pipeline. Development keeps auto-migrate-and-seed for a zero-setup `dotnet run`, Staging seeds demo data onto an already-migrated schema, and Production does neither at runtime.
 
 **Enums stored as strings, not ints.** A `Status` column reading `'Stored'` is debuggable by eye. One reading `2` isn't. Storage cost is trivial at this scale.
 
