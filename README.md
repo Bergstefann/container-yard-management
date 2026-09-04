@@ -1,8 +1,11 @@
 # PortYard
 
-Container yard management API for a port terminal, built with ASP.NET Core and EF Core.
-
 [![CI](https://github.com/Bergstefann/container-yard-management/actions/workflows/ci.yml/badge.svg)](https://github.com/Bergstefann/container-yard-management/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
+![Container lifecycle: legal transitions only — Expected through GatedIn, Stored, Staged, and terminal GatedOut, with two extra legal edges for direct transhipment and re-yard](docs/images/container-lifecycle-state-machine.png)
+
+Container yard management API for a port terminal, built with ASP.NET Core and EF Core.
 
 **Live**: https://portyard-api.azurewebsites.net ([/swagger](https://portyard-api.azurewebsites.net/swagger), [/health](https://portyard-api.azurewebsites.net/health))
 
@@ -13,6 +16,20 @@ A container terminal has to answer three questions correctly, all the time. Wher
 PortYard models that directly. Containers move through a strict lifecycle. Every physical move is written to an append-only ledger. The rules governing slot capacity, reefer placement, and customs holds are enforced by the domain model, not trusted to whichever caller is writing to the database.
 
 It's a portfolio project, not a production system. Even so, it's built the way the problem deserves: a domain layer with no framework dependencies and real invariants, a persistence layer that maps cleanly onto it, and a test suite that proves the business rules hold.
+
+## Domain rules
+
+The invariants the domain layer enforces, and the test suite proves:
+
+- **Legal status transitions only.** `Expected → GatedIn → Stored → Staged → GatedOut`, plus two extra legal edges: `GatedIn → Staged` (direct transhipment) and `Staged → Stored` (re-yarded). Everything else throws. `GatedOut` is terminal.
+- **A container occupies at most one slot.** Assigning to a new slot clears the previous one and records a single Yard movement carrying both.
+- **Slot capacity in TEU is never exceeded.** 20ft is 1 TEU, 40ft and 45ft are 2 TEU. An assignment that would breach `MaxTeu` is rejected.
+- **Reefers only go in reefer-capable slots.**
+- **No gate-out under an active customs hold.** Releasing the hold permits it.
+- **Movements are append-only and chronologically consistent.** A new movement can never predate the container's most recent one, and nothing mutates a movement once recorded.
+- **Container numbers are unique and ISO 6346-valid**, enforced at the API boundary and by a unique database index.
+
+`GatedOut` is terminal; any other transition throws.
 
 ## Quick start
 
@@ -47,36 +64,6 @@ tests/
 `PortYard.Domain` references nothing outside the base class library. Every business rule lives on the entities as methods (`Container.GateIn()`, `AssignToSlot()`, `Stage()`, `GateOut()`), so each one unit tests in memory in milliseconds, with no database and no HTTP pipeline.
 
 `PortYard.Api` depends on `PortYard.Domain`, never the reverse. Controllers call thin services. Services orchestrate EF Core and call domain methods. Those domain methods are the only code path that can change a container's state.
-
-## Domain rules
-
-The invariants the domain layer enforces, and the test suite proves:
-
-- **Legal status transitions only.** `Expected → GatedIn → Stored → Staged → GatedOut`, plus two extra legal edges: `GatedIn → Staged` (direct transhipment) and `Staged → Stored` (re-yarded). Everything else throws. `GatedOut` is terminal.
-- **A container occupies at most one slot.** Assigning to a new slot clears the previous one and records a single Yard movement carrying both.
-- **Slot capacity in TEU is never exceeded.** 20ft is 1 TEU, 40ft and 45ft are 2 TEU. An assignment that would breach `MaxTeu` is rejected.
-- **Reefers only go in reefer-capable slots.**
-- **No gate-out under an active customs hold.** Releasing the hold permits it.
-- **Movements are append-only and chronologically consistent.** A new movement can never predate the container's most recent one, and nothing mutates a movement once recorded.
-- **Container numbers are unique and ISO 6346-valid**, enforced at the API boundary and by a unique database index.
-
-The legal transitions as a state machine:
-
-```mermaid
-stateDiagram-v2
-    [*] --> Expected
-    Expected --> GatedIn : gate-in
-    GatedIn --> Stored : assign-slot
-    Stored --> Staged : stage
-    Staged --> GatedOut : gate-out
-    GatedIn --> Staged : direct transhipment
-    Staged --> Stored : re-yard
-    GatedOut --> [*]
-```
-
-![Container lifecycle: legal transitions only — Expected through GatedIn, Stored, Staged, and terminal GatedOut, with two extra legal edges for direct transhipment and re-yard](docs/images/container-lifecycle-state-machine.png)
-
-`GatedOut` is terminal; any other transition throws.
 
 ## API endpoints
 
@@ -170,7 +157,11 @@ flowchart LR
 
 The App Service reads its connection string from the `ConnectionStrings__YardDb` Application Setting. `Program.cs` picks it up via `GetConnectionString("YardDb")` with no code change. The double underscore is ASP.NET Core's standard convention for nested configuration keys in environment variables.
 
-Schema changes are applied by running `dotnet ef database update` against the target database before traffic is routed to the new version, never automatically at startup outside Development. See the design note below.
+Schema changes are applied by running this against the target database before traffic is routed to the new version, never automatically at startup outside Development. See the design note below.
+
+```bash
+dotnet ef database update
+```
 
 **Next improvement:** managed identity between App Service and Azure SQL, removing the password from the connection string entirely. The deploy currently uses a publish profile with Basic Auth enabled on that single app.
 
@@ -209,3 +200,7 @@ It's `IsConcurrencyToken()` rather than `IsRowVersion()` because SQLite has no s
 **`/health` checks the database, not just the process.** `AddDbContextCheck<YardDbContext>()` means an instance whose SQL connection has died reports unhealthy and gets pulled from rotation, rather than serving requests that will all fail.
 
 **CORS is configuration-driven and off by default.** No frontend exists yet, so there's no origin to hardcode. `Cors:AllowedOrigins` becomes an App Service Application Setting the day a real caller needs it, with no code change.
+
+## License
+
+[MIT](LICENSE)
